@@ -17,6 +17,7 @@
 #include <stdint.h>
 #include "console.h"
 #include "loader.h"
+#include "fdt.h"
 
 /* pinctrl@11850000 (ALIVE): etc0 0x000, gpa0 0x020, gpa1 0x040 (pinctrl-exynos-arm64.c) */
 #define GPA1_CON		0x11850040UL
@@ -320,6 +321,16 @@ void shim_main(uint64_t dtb)
 	uintptr_t entry, ba;
 	const char *why = loader_prepare(dtb, &entry, &ba);
 	if (!why) {
+		/*
+		 * S-Boot put the DTB at 0x8a100000 with a tiny ramdisk; a payload
+		 * of ~18 MB from 0x89000000 reaches past that. If they overlap the
+		 * kernel copy may be damaged: say so instead of guessing later.
+		 */
+		uint64_t rd_lo = 0, rd_hi = 0;
+		fdt_chosen_u64(dtb, "linux,initrd-start", &rd_lo);
+		fdt_chosen_u64(dtb, "linux,initrd-end", &rd_hi);
+		if (dtb >= rd_lo && dtb < rd_hi)
+			con_str("WARN", "DTB inside the ramdisk!");
 		xnu_entry = entry;
 		xnu_boot_args = ba;
 		dsb();
