@@ -52,9 +52,11 @@ jobs:
           sed -i '' 's/ARCHS="x86_64 arm64e" VALID_ARCHS="x86_64 arm64e"/ARCHS="x86_64 arm64e arm64" VALID_ARCHS="x86_64 arm64e arm64"/' dxb/build.sh
           grep -c 'VALID_ARCHS="x86_64 arm64e arm64"' dxb/build.sh
           # A51: libfirehose_kernel is linked into the kernel, and Apple clang's
-          # default arm64 CPU emits LSE atomics the Cortex-A73 lacks
+          # default arm64 CPU emits LSE atomics the Cortex-A73 lacks. Xcode 15
+          # ignores [arch=...] conditions on the command line; -Xarch_arm64
+          # reaches only the plain arm64 slice (not arm64e or x86_64).
           if [ "$MACHINE_CONFIG" = A51 ]; then
-            sed -i '' 's/ARCHS="x86_64 arm64e arm64" VALID_ARCHS="x86_64 arm64e arm64"/& "OTHER_CFLAGS[arch=arm64]=\\$(inherited) -mcpu=cortex-a73"/' dxb/build.sh
+            sed -i '' 's/ARCHS="x86_64 arm64e arm64" VALID_ARCHS="x86_64 arm64e arm64"/& "OTHER_CFLAGS=\\$(inherited) -Xarch_arm64 -mcpu=cortex-a73"/' dxb/build.sh
             grep -n 'cortex-a73' dxb/build.sh
           fi
           ls dxb/patches
