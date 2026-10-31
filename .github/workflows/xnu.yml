@@ -51,6 +51,12 @@ jobs:
           # libfirehose_kernel is built arm64e-only; the SWEET kernel is plain arm64
           sed -i '' 's/ARCHS="x86_64 arm64e" VALID_ARCHS="x86_64 arm64e"/ARCHS="x86_64 arm64e arm64" VALID_ARCHS="x86_64 arm64e arm64"/' dxb/build.sh
           grep -c 'VALID_ARCHS="x86_64 arm64e arm64"' dxb/build.sh
+          # A51: libfirehose_kernel is linked into the kernel, and Apple clang's
+          # default arm64 CPU emits LSE atomics the Cortex-A73 lacks
+          if [ "$MACHINE_CONFIG" = A51 ]; then
+            sed -i '' 's/ARCHS="x86_64 arm64e arm64" VALID_ARCHS="x86_64 arm64e arm64"/& "OTHER_CFLAGS[arch=arm64]=\\$(inherited) -mcpu=cortex-a73"/' dxb/build.sh
+            grep -n 'cortex-a73' dxb/build.sh
+          fi
           ls dxb/patches
 
       - name: Deps
